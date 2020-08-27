@@ -1,7 +1,3 @@
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from rest_framework import status
-
 from skimage.morphology import skeletonize
 from skimage import data, io
 import matplotlib.pyplot as plt
@@ -82,6 +78,8 @@ def generate():
 
   nodes = [ [None for x in range(0,len(skeleton[0]))] for y in range(0,len(skeleton)) ]
   processed = [ [False for x in range(0,len(skeleton[0]))] for y in range(0,len(skeleton)) ]
+  bigNodes = []
+  node_list = []
   for y in range(0,len(skeleton)):
     for x in range(0,len(skeleton[0])):
       if skeleton[y][x]:
@@ -90,8 +88,6 @@ def generate():
         if len(gg)>2:
           bigNodes.append((x,y))
         for node in gg:
-          if x == 249 and y == 165:
-            print(x,y, '-', node[0], node[1])
           nodes[y][x].addNode(node[0],node[1])
         node_list.append(nodes[y][x])
 
@@ -103,12 +99,12 @@ def generate():
   def dfs(node, i, im):
     processed[node.y][node.x] = True
     if i == im:
-      print("xd")
+      # print("xd")
       image[node.y][node.x] = [0,255,0]
       i=0
-    print(node.x, node.y, ' - ', node.connected)
+    # print(node.x, node.y, ' - ', node.connected)
     for x,y in node.connected:
-      print(x,y)
+      # print(x,y)
       if processed[y][x]:
         pass
       else:
@@ -120,9 +116,32 @@ def generate():
   g = (node_list[0],0)
   while len(queue):
     g = queue.pop()
-    print('nn', g)
+    # print('nn', g)
     dfs(g[0], g[1], 5)
 
+  bigEdges = []
+  processed = [ [False for x in range(0,len(nodes[0]))] for y in range(0,len(nodes)) ]
+  queue = deque()
+  def dfs2(node, lastBig, weight):
+    global cn 
+    cn = node
+    processed[node.y][node.x] = True
+    if (len(node.connected)>2):
+      bigEdges.append([(lastBig.x,lastBig.y), (node.x,node.y), weight])
+      bigEdges.append([(node.x,node.y), (lastBig.x,lastBig.y), weight])
+      lastBig = node
+      weight = 0
+    for x,y in node.connected:
+      if processed[y][x]:
+        pass
+      else:
+        queue.append( ((x,y), (lastBig.x,lastBig.y), weight+1) )
+  t = nodes[bigNodes[0][1]][bigNodes[0][0]]
+  queue.append( ((t.x,t.y), (t.x,t.y), 0) )   #this got a little bug
+  while(len(queue)):
+    g = queue.pop()
+    # print(g)
+    dfs2(nodes[g[0][1]][g[0][0]], nodes[g[1][1]][g[1][0]], g[2])
 
   intersections = list(set(bigNodes))
   bigNodes = intersections
@@ -134,11 +153,11 @@ def generate():
   for x,y in intersections:
     image[y][x] = [255,0,0]
   plt.tight_layout()
-  plt.imshow(image)
-  plt.show()
+  # plt.imshow(image)
+  # plt.show()
       
   g = list(map(lambda x:x.dictified(), node_list))
-  l = dict(node_list=g, big_nodes=bigNodes)
+  l = dict(node_list=g, big_nodes=bigNodes, big_edges=bigEdges)
   a = json.dumps(l)
   file = open('gg.txt', 'w')
   file.write(a)
@@ -167,10 +186,13 @@ def show(skeleton):
 
 ######### your data starts here. dont concern yourself with anything anything above this line
 def read_data():
-  file = open('/home/twin_n/workspace/dronet/map_generator/server/dronet/gg.txt', 'r')
+  file = open('/home/twin_n/workspace/dronet/map_generator/gg.txt', 'r')
   content = file.read()
   return json.loads(content)
+
+
 
 data = read_data()
 node_list = data['node_list']  #list of objects (instances of Node class)
 bigNodes = data['big_nodes']   #list of coordinates as arrays [x,y]
+bigEdges = data['big_edges']   #list of [[x1,y1], [x2,y2], w]

@@ -173,4 +173,5 @@ def drone_data(request):
   data = read_data()
   node_list = data['node_list']
   bigNodes = data['big_nodes']
-  return Response({'node_list':node_list, 'bigNodes':bigNodes })
+  bigEdges = data['big_edges']
+  return Response({'node_list':node_list, 'bigNodes':bigNodes, 'bigEdges':bigEdges })

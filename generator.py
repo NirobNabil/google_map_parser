@@ -194,5 +194,63 @@ def read_data():
 
 data = read_data()
 node_list = data['node_list']  #list of objects (instances of Node class)
+node_matrix = {}
+for node in node_list:
+  t_x = node['x']
+  t_y = node['y']
+  try:
+    temp[t_y][t_x] = node
+  except KeyError:
+    temp[t_y] = {}
+    temp[t_y][t_x] = node
+node_matrix = temp
+
 bigNodes = data['big_nodes']   #list of coordinates as arrays [x,y]
 bigEdges = data['big_edges']   #list of [[x1,y1], [x2,y2], w]
+temp = {}
+for n1, n2, w in bigEdges:
+  t_n1 = (n1[0], n1[1])
+  t_n2 = (n2[0], n2[1])
+  try:
+    temp[t_n1][t_n2] = w
+  except KeyError:
+    temp[t_n1] = {}
+    temp[t_n1][t_n2] = w
+  try:
+    temp[t_n2][t_n1] = w
+  except KeyError:
+    temp[t_n2] = {}
+    temp[t_n2][t_n1] = w
+bigEdges = temp
+
+class Drone:
+  '''contains drone's attribute data'''
+  def __init__(self, capacity, speed, duration):
+    self.capacity = capacity
+    self.speed = speed
+    self.duration = duration
+
+drones = [ Drone(50, 30, 300), Drone(50, 10, 600), Drone(80, 6, 100), Drone(30, 10, 500), ]
+
+
+class Station:
+  '''contains drone's attribute data'''
+  def __init__(self, capacity, location):
+    self.capacity = capacity
+    self.location = location  #location is a node object 
+
+stations = [ Station(500, bigNodes[5]), Station(300, bigNodes[8]), Station(1000, bigNodes[40]) ]
+
+
+class Drone_location:
+  '''contains drone's current position'''
+  def __init__(self,curNode,curEdge):
+    self.node = curNode
+    self.edge = curEdge
+
+# def add_request(node):
+
+##  when you get a request from node n, detect which which bigEdge node n is on. say node n is on the 
+##  edge between bignodex and bignodey. then add two edges (bignodex,n,calculated_weight_from_bignodex_to_n) and 
+##  (bignodey,n,calculated_weight_from_bignodey_to_n) to bigEdges and continue the algorithm
+##  after the delivery is done remove these two edges

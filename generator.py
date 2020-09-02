@@ -194,7 +194,7 @@ def read_data():
 
 data = read_data()
 node_list = data['node_list']  #list of objects (instances of Node class)
-node_matrix = {}
+temp = {}
 for node in node_list:
   t_x = node['x']
   t_y = node['y']
@@ -203,7 +203,7 @@ for node in node_list:
   except KeyError:
     temp[t_y] = {}
     temp[t_y][t_x] = node
-node_matrix = temp
+node_matrix = temp    # format - node_matrix[y][x] = node
 
 bigNodes = data['big_nodes']   #list of coordinates as arrays [x,y]
 bigEdges = data['big_edges']   #list of [[x1,y1], [x2,y2], w]
@@ -221,14 +221,15 @@ for n1, n2, w in bigEdges:
   except KeyError:
     temp[t_n2] = {}
     temp[t_n2][t_n1] = w
-bigEdges = temp
+bigEdges = temp   # format - bigEdges[y][x] = w
 
 class Drone:
   '''contains drone's attribute data'''
-  def __init__(self, capacity, speed, duration):
+  def __init__(self, capacity, speed, duration, node=None, edge=None):
     self.capacity = capacity
     self.speed = speed
     self.duration = duration
+    self.location = {node: node, edge: edge}
 
 drones = [ Drone(50, 30, 300), Drone(50, 10, 600), Drone(80, 6, 100), Drone(30, 10, 500), ]
 
@@ -241,12 +242,25 @@ class Station:
 
 stations = [ Station(500, bigNodes[5]), Station(300, bigNodes[8]), Station(1000, bigNodes[40]) ]
 
+from skimage import data, io
+def showdebug():
+  blobs = invert(data.img_as_bool(imread('map.png', as_gray=1)))
 
-class Drone_location:
-  '''contains drone's current position'''
-  def __init__(self,curNode,curEdge):
-    self.node = curNode
-    self.edge = curEdge
+  # Compute the medial axis (skeleton) and the distance transform
+  skel, distance = medial_axis(blobs, return_distance=True)
+
+  # Compare with other skeletonization algorithms
+  skeleton = skeletonize(blobs)
+  show(skeleton)
+  
+
+def debug():
+  r = []
+  for i in bigEdges.keys():
+    if(len(bigEdges[i].keys())):
+      r.append(i)
+      r.append(bigEdges[i])
+  return r
 
 # def add_request(node):
 
@@ -254,3 +268,20 @@ class Drone_location:
 ##  edge between bignodex and bignodey. then add two edges (bignodex,n,calculated_weight_from_bignodex_to_n) and 
 ##  (bignodey,n,calculated_weight_from_bignodey_to_n) to bigEdges and continue the algorithm
 ##  after the delivery is done remove these two edges
+
+
+# je point e request ashse oi point er closest je route ache oi drone ta n1 node er request ta accept korlo je package ta n2 te deliver korte hobe and drone ta delivery nawar age d2 te jacchilo. 
+
+# int calc_new_delivery_cost(n1, n2, prev_cost, max_cost){
+#   d1 = closest drone current position
+#   d2 = closest drone current delivery destination
+#   d_cost_prev = closest drone current delivery cost
+#   d_cost_no_ch = d_cost_after = shortest_path(d1,n1,n2,d2)
+#   max_cost = min(d_cost_no_ch+prev_cost, max_cost)
+#   for every closest charging station near n1 as c_i:
+#     s_path = shortest_path(d1,n1,c_i,d2)
+#     if s_path < d_cost_no_ch and prev_cost+s_path < max_cost:
+#     d_cost_after = min(d_cost_after, s_path + calc_new_delivery_cost(c_i, n2, prev_cost+s_path, max_cost) )
+
+#   return d_cost_after - d_cost_prev;
+# }

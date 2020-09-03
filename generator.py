@@ -85,8 +85,8 @@ def generate():
       if skeleton[y][x]:
         nodes[y][x] = Node(x,y)
         gg = get_connected(x,y,skeleton)
-        if len(gg)>2:
-          bigNodes.append((x,y))
+        # if len(gg)>2:
+        #   bigNodes.append((x,y))
         for node in gg:
           nodes[y][x].addNode(node[0],node[1])
         node_list.append(nodes[y][x])
@@ -125,23 +125,26 @@ def generate():
   def dfs2(node, lastBig, weight):
     global cn 
     cn = node
-    processed[node.y][node.x] = True
     if (len(node.connected)>2):
+      if not processed[node.y][node.x]:
+        bigNodes.append((node.x,node.y))
       bigEdges.append([(lastBig.x,lastBig.y), (node.x,node.y), weight])
       bigEdges.append([(node.x,node.y), (lastBig.x,lastBig.y), weight])
       lastBig = node
       weight = 0
-    for x,y in node.connected:
-      if processed[y][x]:
-        pass
-      else:
+    if not processed[node.y][node.x]:
+      for x,y in node.connected:
         queue.append( ((x,y), (lastBig.x,lastBig.y), weight+1) )
-  t = nodes[bigNodes[0][1]][bigNodes[0][0]]
+    
+    processed[node.y][node.x] = True
+    
+  t = nodes[44][9]
   queue.append( ((t.x,t.y), (t.x,t.y), 0) )   #this got a little bug
   while(len(queue)):
     g = queue.pop()
     # print(g)
     dfs2(nodes[g[0][1]][g[0][0]], nodes[g[1][1]][g[1][0]], g[2])
+
 
   intersections = list(set(bigNodes))
   bigNodes = intersections
@@ -245,11 +248,7 @@ stations = [ Station(500, bigNodes[5]), Station(300, bigNodes[8]), Station(1000,
 from skimage import data, io
 def showdebug():
   blobs = invert(data.img_as_bool(imread('map.png', as_gray=1)))
-
-  # Compute the medial axis (skeleton) and the distance transform
   skel, distance = medial_axis(blobs, return_distance=True)
-
-  # Compare with other skeletonization algorithms
   skeleton = skeletonize(blobs)
   show(skeleton)
   

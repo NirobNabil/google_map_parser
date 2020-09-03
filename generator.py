@@ -1,4 +1,5 @@
 from skimage.morphology import skeletonize
+import sys
 from skimage import data, io
 import matplotlib.pyplot as plt
 from skimage.util import invert
@@ -16,6 +17,7 @@ class Node:
     self.x = x
     self.y = y
     self.connected = []
+    self.drones = []
   def __str__(self):
     return str(self.x) + " " + str(self.y) + ' - ' + str(self.connected)
   def addNode(self,x,y):
@@ -76,6 +78,7 @@ def generate():
   # Distance to the background for pixels of the skeleton
   dist_on_skel = distance
 
+  global nodes
   nodes = [ [None for x in range(0,len(skeleton[0]))] for y in range(0,len(skeleton)) ]
   processed = [ [False for x in range(0,len(skeleton[0]))] for y in range(0,len(skeleton)) ]
   bigNodes = []
@@ -119,35 +122,62 @@ def generate():
     # print('nn', g)
     dfs(g[0], g[1], 5)
 
+  bigNodes_dict = {}
   bigEdges = []
-  processed = [ [False for x in range(0,len(nodes[0]))] for y in range(0,len(nodes)) ]
-  queue = deque()
-  def dfs2(node, lastBig, weight):
-    global cn 
-    cn = node
-    if (len(node.connected)>2):
-      if not processed[node.y][node.x]:
-        bigNodes.append((node.x,node.y))
-      bigEdges.append([(lastBig.x,lastBig.y), (node.x,node.y), weight])
-      bigEdges.append([(node.x,node.y), (lastBig.x,lastBig.y), weight])
-      lastBig = node
-      weight = 0
-    if not processed[node.y][node.x]:
-      for x,y in node.connected:
-        queue.append( ((x,y), (lastBig.x,lastBig.y), weight+1) )
+  # processed = [ [False for x in range(0,len(nodes[0]))] for y in range(0,len(nodes)) ]
+  # queue = deque()
+  # def dfs2(node, lastBig, weight):
+  #   global cn 
+  #   cn = node
+  #   if (len(node.connected)>2 or len(node.connected)==1):
+  #     bigNodes.append((node.x,node.y))
+  #     bigNodes_dict[(node.x,node.y)] = True
+  #   if not processed[node.y][node.x]:
+  #     for x,y in node.connected:
+  #       queue.append( ((x,y), (lastBig.x,lastBig.y), weight+1) )
     
-    processed[node.y][node.x] = True
-    
-  t = nodes[44][9]
-  queue.append( ((t.x,t.y), (t.x,t.y), 0) )   #this got a little bug
-  while(len(queue)):
-    g = queue.pop()
-    # print(g)
-    dfs2(nodes[g[0][1]][g[0][0]], nodes[g[1][1]][g[1][0]], g[2])
+  #   processed[node.y][node.x] = True
 
+  # t = nodes[44][9]
+  # queue.append( ((t.x,t.y), (t.x,t.y), 0) )   #this got a little bug
+  # while(len(queue)):
+  #   g = queue.pop()
+  #   # print(g)
+  #   dfs2(nodes[g[0][1]][g[0][0]], nodes[g[1][1]][g[1][0]], g[2])
+  
+  processed = [ [False for x in range(0,len(nodes[0]))] for y in range(0,len(nodes)) ]
+  # sys.setrecursionlimit(10**8)
+  q = deque()
+  def dfs3(node):
+    processed[node.y][node.x] = True
+    if(len(node.connected)!=2):
+      bigNodes.append((node.x,node.y))
+      # bigNodes_dict[(node.x,node.y)] = True
+    for x,y in node.connected:
+      if not processed[y][x]:
+        q.append(nodes[y][x])
+
+  q.append(node_list[0])
+  while(len(q)):
+    dfs3(q.pop())
+
+  def follow_until_bignode(node, parent, weight):
+    if(len(node.connected)!=2):
+      return [node, weight]
+    for x,y in node.connected:
+      if parent.x != x or parent.y != y:
+        return follow_until_bignode(nodes[y][x], node, weight+1)
+
+  processed = [ [False for x in range(0,len(nodes[0]))] for y in range(0,len(nodes)) ]
+  for binod in bigNodes:
+    bigNode = nodes[binod[1]][binod[0]]
+    for x,y in bigNode.connected:
+      n,w = follow_until_bignode(nodes[y][x], bigNode, 1)
+      bigEdges.append((binod, (n.x,n.y), w))
+    
 
   intersections = list(set(bigNodes))
-  bigNodes = intersections
+  # bigNodes = intersections
   # print_neighbour(41,104,5,5,image)
   for point1 in intersections:
       for point2 in intersections:
@@ -261,6 +291,14 @@ def debug():
       r.append(bigEdges[i])
   return r
 
+def check():
+  for x in bigEdges.keys():
+    if bigNodes.count([x[0], x[1]]) == 0:
+      return False
+    for y in bigEdges[x].keys():
+      if bigNodes.count([y[0], y[1]]) == 0:
+        return False
+  return True
 # def add_request(node):
 
 ##  when you get a request from node n, detect which which bigEdge node n is on. say node n is on the 
@@ -281,6 +319,13 @@ def debug():
 #     s_path = shortest_path(d1,n1,c_i,d2)
 #     if s_path < d_cost_no_ch and prev_cost+s_path < max_cost:
 #     d_cost_after = min(d_cost_after, s_path + calc_new_delivery_cost(c_i, n2, prev_cost+s_path, max_cost) )
+
+# def get_closest_drone(node):
+
+
+# def calc_nd_cost(n1,n2,prev_cost,max_cost):
+#   d1 = 
+
 
 #   return d_cost_after - d_cost_prev;
 # }
